@@ -4,6 +4,9 @@
 # - use the VERSION as arg of the bundle target (e.g make bundle VERSION=0.0.2)
 # - use environment variables to overwrite this value (e.g export VERSION=0.0.2)
 VERSION ?= 0.0.1
+VERSION_ = $(shell echo $(VERSION) | sed -e "s/\./-/g")
+
+NAMESPACE ?= memcached-operator-system
 
 # CHANNELS define the bundle channels used in the bundle.
 # Add a new line here if you would like to change its default config. (E.g CHANNELS = "candidate,fast,stable")
@@ -120,6 +123,13 @@ deploy: manifests kustomize ## Deploy controller to the K8s cluster specified in
 undeploy: ## Undeploy controller from the K8s cluster specified in ~/.kube/config.
 	$(KUSTOMIZE) build config/default | kubectl delete -f -
 
+.PHONY: clean
+clean:
+	oc cluster-info
+	oc project memcached-operator-system
+	oc delete csv memcached-operator.v$(VERSION) --ignore-not-found
+	oc delete catalogsource memcached-operator-catalog -n $(NAMESPACE) --ignore-not-found
+	oc delete subscription.operators memcached-operator-v$(VERSION_)-sub -n $(NAMESPACE) --ignore-not-found
 
 CONTROLLER_GEN = $(shell pwd)/bin/controller-gen
 controller-gen: ## Download controller-gen locally if necessary.
